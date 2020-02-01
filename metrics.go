@@ -23,8 +23,8 @@ type metricsMiddleware struct {
 
 func (m metricsMiddleware) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
 	m.onHandleRequestStart()
+	defer m.onHandleRequestFinish()
 	m.nextHandler(writer, request)
-	m.onHandleRequestFinish()
 }
 
 func (m metricsMiddleware) onHandleRequestStart() {

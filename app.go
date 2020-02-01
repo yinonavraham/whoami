@@ -9,6 +9,7 @@ import (
 	"log"
 	"net"
 	"net/http"
+	_ "net/http/pprof"
 	"net/url"
 	"os"
 	"strconv"
@@ -70,8 +71,7 @@ func wrapHandler(handler http.HandlerFunc) http.HandlerFunc {
 	if !metricsEnabled {
 		return handler
 	}
-	metricsHandler := metricsMiddleware{nextHandler: handler}
-	return metricsHandler.ServeHTTP
+	return metricsMiddleware{nextHandler: handler}.ServeHTTP
 }
 
 func benchHandler(w http.ResponseWriter, _ *http.Request) {
@@ -139,10 +139,11 @@ func dataHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	content := fillContent(size)
+	//defer content.Close()
 
 	if attachment {
 		w.Header().Add("Content-Disposition", "Attachment")
-		http.ServeContent(w, r, "data.txt", time.Now(), content)
+		http.ServeContent(w, r, "data.txt", time.Now(), bytes.NewReader(content.Bytes()))
 		return
 	}
 
@@ -260,18 +261,34 @@ func healthHandler(w http.ResponseWriter, req *http.Request) {
 	}
 }
 
-func fillContent(length int64) io.ReadSeeker {
-	charset := "-ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-	b := make([]byte, length)
-
-	for i := range b {
-		b[i] = charset[i%len(charset)]
-	}
-
-	if length > 0 {
-		b[0] = '|'
-		b[length-1] = '|'
-	}
-
-	return bytes.NewReader(b)
+func fillContent(length int64) *bytes.Buffer {
+	b := &bytes.Buffer{}
+	writeContent(b, length)
+	return b
 }
+
+func fillContentPooled(length int64) *PooledBuffer {
+	b := GetPooledBuffer()
+	writeContent(b, length)
+	return b
+}
+
+func writeContent(w byteRuneWriter, length int64) {
+	if length <= 0 {
+		return
+	}
+	w.WriteRune('|')
+	for i := 1; i < (int(length) - 1); i++ {
+		w.WriteByte(CHARSET[i%len(CHARSET)])
+	}
+	if length > 1 {
+		w.WriteRune('|')
+	}
+}
+
+type byteRuneWriter interface {
+	io.ByteWriter
+	WriteRune(r rune) (n int, err error)
+}
+
+const CHARSET = "-ABCDEFGHIJKLMNOPQRSTUVWXYZ"
