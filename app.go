@@ -9,7 +9,7 @@ import (
 	"log"
 	"net"
 	"net/http"
-	_ "net/http/pprof"
+	//_ "net/http/pprof"
 	"net/url"
 	"os"
 	"strconv"
@@ -109,6 +109,9 @@ func printBinary(s []byte) {
 	fmt.Printf("\n")
 }
 
+// ################################################################################################
+// DATA
+
 func dataHandler(w http.ResponseWriter, r *http.Request) {
 	u, _ := url.Parse(r.URL.String())
 	queryParams := u.Query()
@@ -152,6 +155,41 @@ func dataHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 }
+
+func fillContent(length int64) *bytes.Buffer {
+	b := &bytes.Buffer{}
+	writeContent(b, length)
+	return b
+}
+
+func fillContentPooled(length int64) *PooledBuffer {
+	b := GetPooledBuffer()
+	writeContent(b, length)
+	return b
+}
+
+func writeContent(w byteRuneWriter, length int64) {
+	if length <= 0 {
+		return
+	}
+	_, _ = w.WriteRune('|')
+	for i := 1; i < (int(length) - 1); i++ {
+		_ = w.WriteByte(CHARSET[i%len(CHARSET)])
+	}
+	if length > 1 {
+		_, _ = w.WriteRune('|')
+	}
+}
+
+type byteRuneWriter interface {
+	io.ByteWriter
+	WriteRune(r rune) (n int, err error)
+}
+
+const CHARSET = "-ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+
+// ################################################################################################
+// WHOAMI
 
 func whoamiHandler(w http.ResponseWriter, req *http.Request) {
 	u, _ := url.Parse(req.URL.String())
@@ -202,6 +240,8 @@ func writeHostInfo(w io.Writer) {
 //	hostInfo = b.String()
 //})
 //_, _ = fmt.Fprint(w, hostInfo)
+
+// ################################################################################################
 
 func apiHandler(w http.ResponseWriter, req *http.Request) {
 	hostname, _ := os.Hostname()
@@ -274,35 +314,3 @@ func healthHandler(w http.ResponseWriter, req *http.Request) {
 		w.WriteHeader(currentHealthState.StatusCode)
 	}
 }
-
-func fillContent(length int64) *bytes.Buffer {
-	b := &bytes.Buffer{}
-	writeContent(b, length)
-	return b
-}
-
-func fillContentPooled(length int64) *PooledBuffer {
-	b := GetPooledBuffer()
-	writeContent(b, length)
-	return b
-}
-
-func writeContent(w byteRuneWriter, length int64) {
-	if length <= 0 {
-		return
-	}
-	w.WriteRune('|')
-	for i := 1; i < (int(length) - 1); i++ {
-		w.WriteByte(CHARSET[i%len(CHARSET)])
-	}
-	if length > 1 {
-		w.WriteRune('|')
-	}
-}
-
-type byteRuneWriter interface {
-	io.ByteWriter
-	WriteRune(r rune) (n int, err error)
-}
-
-const CHARSET = "-ABCDEFGHIJKLMNOPQRSTUVWXYZ"
