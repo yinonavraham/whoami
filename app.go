@@ -163,6 +163,16 @@ func whoamiHandler(w http.ResponseWriter, req *http.Request) {
 		}
 	}
 
+	writeHostInfo(w)
+
+	_, _ = fmt.Fprintln(w, "RemoteAddr:", req.RemoteAddr)
+	if err := req.Write(w); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+}
+
+func writeHostInfo(w io.Writer) {
 	hostname, _ := os.Hostname()
 	_, _ = fmt.Fprintln(w, "Hostname:", hostname)
 
@@ -181,13 +191,17 @@ func whoamiHandler(w http.ResponseWriter, req *http.Request) {
 			_, _ = fmt.Fprintln(w, "IP:", ip)
 		}
 	}
-
-	_, _ = fmt.Fprintln(w, "RemoteAddr:", req.RemoteAddr)
-	if err := req.Write(w); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
 }
+
+//var hostInfo string
+//var hostInfoOnce = sync.Once{}
+
+//hostInfoOnce.Do(func() {
+//	b := strings.Builder{}
+//	writeHostInfo(&b)
+//	hostInfo = b.String()
+//})
+//_, _ = fmt.Fprint(w, hostInfo)
 
 func apiHandler(w http.ResponseWriter, req *http.Request) {
 	hostname, _ := os.Hostname()
