@@ -2,7 +2,6 @@ package main
 
 import (
 	"bytes"
-	"runtime/pprof"
 	"sync"
 )
 
@@ -29,4 +28,11 @@ func (b *PooledBuffer) Close() error {
 	return nil
 }
 
-var bufferPoolProfile = pprof.NewProfile("buffer.pool")
+var bufferPoolProfile = dummyProfile{}
+
+//var bufferPoolProfile = pprof.NewProfile("buffer.pool")
+
+type dummyProfile struct{}
+
+func (p dummyProfile) Add(v interface{}, skip int) {}
+func (p dummyProfile) Remove(v interface{})        {}
