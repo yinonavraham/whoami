@@ -2,12 +2,11 @@ package main
 
 import (
 	"bytes"
+	"runtime/pprof"
 	"sync"
 )
 
-var bufferPoolProfile = dummyProfile{}
-
-//var bufferPoolProfile = pprof.NewProfile("buffer.pool")
+var bufferPoolProfile = pprof.NewProfile("buffer.pool")
 
 func GetPooledBuffer() *PooledBuffer {
 	b := bufferPool.Get().(*PooledBuffer)

@@ -9,7 +9,7 @@ import (
 	"log"
 	"net"
 	"net/http"
-	//_ "net/http/pprof"
+	_ "net/http/pprof"
 	"net/url"
 	"os"
 	"strconv"
@@ -141,8 +141,8 @@ func dataHandler(w http.ResponseWriter, r *http.Request) {
 		attachment = false
 	}
 
-	content := fillContent(size)
-	//defer content.Close()
+	content := fillContentPooled(size)
+	defer content.Close()
 
 	if attachment {
 		w.Header().Add("Content-Disposition", "Attachment")
@@ -201,7 +201,12 @@ func whoamiHandler(w http.ResponseWriter, req *http.Request) {
 		}
 	}
 
-	writeHostInfo(w)
+	hostInfoOnce.Do(func() {
+		b := strings.Builder{}
+		writeHostInfo(&b)
+		hostInfo = b.String()
+	})
+	_, _ = fmt.Fprint(w, hostInfo)
 
 	_, _ = fmt.Fprintln(w, "RemoteAddr:", req.RemoteAddr)
 	if err := req.Write(w); err != nil {
@@ -231,15 +236,8 @@ func writeHostInfo(w io.Writer) {
 	}
 }
 
-//var hostInfo string
-//var hostInfoOnce = sync.Once{}
-
-//hostInfoOnce.Do(func() {
-//	b := strings.Builder{}
-//	writeHostInfo(&b)
-//	hostInfo = b.String()
-//})
-//_, _ = fmt.Fprint(w, hostInfo)
+var hostInfo string
+var hostInfoOnce = sync.Once{}
 
 // ################################################################################################
 
