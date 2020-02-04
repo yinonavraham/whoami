@@ -5,6 +5,10 @@ import (
 	"sync"
 )
 
+var bufferPoolProfile = dummyProfile{}
+
+//var bufferPoolProfile = pprof.NewProfile("buffer.pool")
+
 func GetPooledBuffer() *PooledBuffer {
 	b := bufferPool.Get().(*PooledBuffer)
 	bufferPoolProfile.Add(b, 1)
@@ -27,10 +31,6 @@ func (b *PooledBuffer) Close() error {
 	bufferPool.Put(b)
 	return nil
 }
-
-var bufferPoolProfile = dummyProfile{}
-
-//var bufferPoolProfile = pprof.NewProfile("buffer.pool")
 
 type dummyProfile struct{}
 
